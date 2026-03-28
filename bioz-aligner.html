@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BioZ Alignment Viewer</title>
+  <link rel="stylesheet" href="./label-editor.css" />
+  <link rel="stylesheet" href="./bioz-aligner.css" />
+  <script defer src="./bioz-aligner.js"></script>
+</head>
+<body>
+  <header class="page-header">
+    <div>
+      <div class="eyebrow">Chrome web app</div>
+      <h1>BioZ Alignment Viewer</h1>
+      <p>Load one synchronized CSV, inspect <code>txt_mag3</code> and <code>txt_mag4</code> against <code>csv_ribmid</code>, <code>csv_ribright</code>, <code>csv_waistmid</code>, and <code>csv_ribleft</code>, then time-shift the BioZ traces until the alignment looks right.</p>
+    </div>
+    <div class="header-actions">
+      <a class="btn btn-secondary" href="./index.html">Back to dashboard</a>
+    </div>
+  </header>
+
+  <main class="page-grid viewer-grid">
+    <section class="card controls-card">
+      <h2>Files</h2>
+      <div class="file-grid">
+        <label class="file-picker">
+          <span>Synchronized CSV</span>
+          <input id="alignedFileInput" type="file" accept=".csv,text/csv" />
+          <small id="alignedFileMeta">No file selected.</small>
+        </label>
+        <label class="file-picker">
+          <span>Audio file</span>
+          <input id="audioFileInput" type="file" accept="audio/*,.m4a,.wav,.mp3,.aac,.caf" />
+          <small id="audioFileMeta">No audio selected.</small>
+        </label>
+      </div>
+
+      <div class="summary-grid">
+        <div class="summary-box">
+          <span class="summary-label">Session</span>
+          <strong id="sessionLabel">—</strong>
+        </div>
+        <div class="summary-box">
+          <span class="summary-label">Rows</span>
+          <strong id="rowCount">0</strong>
+        </div>
+        <div class="summary-box">
+          <span class="summary-label">Duration</span>
+          <strong id="sessionDuration">0.0 s</strong>
+        </div>
+        <div class="summary-box">
+          <span class="summary-label">Sample Rate</span>
+          <strong id="sampleRate">—</strong>
+        </div>
+        <div class="summary-box">
+          <span class="summary-label">Audio</span>
+          <strong id="audioLabel">—</strong>
+        </div>
+        <div class="summary-box">
+          <span class="summary-label">Audio Duration</span>
+          <strong id="audioDuration">—</strong>
+        </div>
+      </div>
+
+      <section class="guide-card" aria-label="Quick guide">
+        <div class="guide-card-header">
+          <h3>Quick guide</h3>
+          <span>Alignment review</span>
+        </div>
+        <ol class="guide-list">
+          <li>Load one synchronized CSV such as <code>4_task1_synced_20hz.csv</code>.</li>
+          <li>Optionally load the matching audio file to view its waveform on the same timeline.</li>
+          <li>Use the BioZ shift controls to move <code>txt_mag3</code> and <code>txt_mag4</code> left or right in time.</li>
+          <li>Use the audio shift controls to move the audio waveform left or right to align with the signals.</li>
+          <li>Click the overview plot to recenter the detail pane around the part you want to inspect.</li>
+          <li>Enable segment selection and drag on the overview or detail plot to mark the interval you want to export.</li>
+          <li>Save a shifted CSV if you want the BioZ shift and audio shift metadata exported with the current offset values.</li>
+          <li>Save the selected segment to download the clipped CSV data and matching audio clip.</li>
+        </ol>
+        <div class="shortcut-list">
+          <span>Positive shift moves BioZ later or to the right.</span>
+          <span>Positive audio shift moves audio later or to the right.</span>
+          <span>Negative shift moves BioZ earlier or to the left.</span>
+          <span>All chart bands share the same timeline.</span>
+        </div>
+      </section>
+
+      <section class="option-card" aria-label="Viewer options">
+        <div class="guide-card-header">
+          <h3>Viewer options</h3>
+          <span>Window and shift</span>
+        </div>
+        <div class="option-list">
+          <label class="option-field">
+            <span>Detail window (seconds)</span>
+            <input id="windowSecondsInput" type="number" min="4" step="1" value="20" />
+          </label>
+          <label class="option-field">
+            <span>BioZ shift (ms)</span>
+            <input id="biozShiftMsInput" type="number" step="1" value="0" />
+          </label>
+          <label class="option-field shift-range-field">
+            <span>BioZ shift slider</span>
+            <input id="biozShiftRange" type="range" min="-5000" max="5000" step="1" value="0" />
+            <small>Drag for coarse alignment, then use the number input for precise adjustments.</small>
+          </label>
+          <label class="option-field">
+            <span>Audio shift (ms)</span>
+            <input id="audioShiftMsInput" type="number" step="1" value="0" disabled />
+          </label>
+          <label class="option-field shift-range-field">
+            <span>Audio shift slider</span>
+            <input id="audioShiftRange" type="range" min="-10000" max="10000" step="1" value="0" disabled />
+            <small>Positive values move the audio waveform later on the timeline.</small>
+          </label>
+        </div>
+        <div class="shift-button-group">
+          <div class="shift-button-group-title">BioZ nudge</div>
+          <div class="shift-button-row">
+            <button class="btn btn-secondary" data-shift-target="bioz" data-shift-delta="-100">-100 ms</button>
+            <button class="btn btn-secondary" data-shift-target="bioz" data-shift-delta="-50">-50 ms</button>
+            <button class="btn btn-secondary" data-shift-target="bioz" data-shift-delta="+50">+50 ms</button>
+            <button class="btn btn-secondary" data-shift-target="bioz" data-shift-delta="+100">+100 ms</button>
+          </div>
+        </div>
+        <div class="shift-button-group">
+          <div class="shift-button-group-title">Audio nudge</div>
+          <div class="shift-button-row">
+            <button class="btn btn-secondary" data-shift-target="audio" data-shift-delta="-200" disabled>-200 ms</button>
+            <button class="btn btn-secondary" data-shift-target="audio" data-shift-delta="-50" disabled>-50 ms</button>
+            <button class="btn btn-secondary" data-shift-target="audio" data-shift-delta="+50" disabled>+50 ms</button>
+            <button class="btn btn-secondary" data-shift-target="audio" data-shift-delta="+200" disabled>+200 ms</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="option-card" aria-label="Segment selection">
+        <div class="guide-card-header">
+          <h3>Segment selection</h3>
+          <span>Clip aligned data and audio</span>
+        </div>
+        <div class="summary-grid selection-summary-grid">
+          <div class="summary-box">
+            <span class="summary-label">Start</span>
+            <strong id="selectionStartLabel">—</strong>
+          </div>
+          <div class="summary-box">
+            <span class="summary-label">End</span>
+            <strong id="selectionEndLabel">—</strong>
+          </div>
+          <div class="summary-box">
+            <span class="summary-label">Duration</span>
+            <strong id="selectionDurationLabel">0.0 s</strong>
+          </div>
+          <div class="summary-box">
+            <span class="summary-label">Audio Overlap</span>
+            <strong id="selectionAudioOverlapLabel">—</strong>
+          </div>
+        </div>
+        <div class="selection-toolbar">
+          <button id="selectionModeBtn" class="btn btn-secondary" disabled>Select on chart</button>
+          <button id="selectVisibleRangeBtn" class="btn btn-secondary" disabled>Use visible range</button>
+          <button id="clearSelectionBtn" class="btn btn-secondary" disabled>Clear selection</button>
+        </div>
+        <div class="selection-note">
+          Turn on chart selection, then drag across the overview or detail plot to mark the segment you want to export.
+        </div>
+        <div class="toolbar selection-export-toolbar">
+          <button id="saveSelectedDataBtn" class="btn btn-secondary" disabled>Save selected CSV</button>
+          <button id="saveSelectedAudioBtn" class="btn btn-secondary" disabled>Save selected audio</button>
+          <button id="saveSelectedSegmentBtn" class="btn btn-primary" disabled>Save selected segment</button>
+        </div>
+      </section>
+
+      <div class="notice" id="statusBox">Load one synchronized CSV to inspect BioZ and respiration alignment.</div>
+
+      <div class="toolbar">
+        <button id="resetShiftBtn" class="btn btn-secondary" disabled>Reset shift</button>
+        <button id="resetAudioShiftBtn" class="btn btn-secondary" disabled>Reset audio shift</button>
+        <button id="saveShiftedBtn" class="btn btn-primary" disabled>Save shifted CSV</button>
+      </div>
+    </section>
+
+    <section class="card chart-card viewer-chart-card">
+      <div class="chart-header">
+        <div>
+          <h2>Linked plots</h2>
+          <p>The viewer can show BioZ, respiration, optional audio waveform, and an alignment overlay on one shared timeline. The BioZ shift affects only BioZ-derived traces, and the audio shift affects only the imported audio waveform.</p>
+        </div>
+        <div class="chart-header-side">
+          <div class="chart-legend-note">BioZ shift: <strong id="shiftLabel">0 ms</strong></div>
+          <div class="chart-legend-note">Audio shift: <strong id="audioShiftLabel">0 ms</strong></div>
+          <div class="viewport-pill">Visible range: <strong id="viewportLabel">—</strong></div>
+          <div class="chart-controls">
+            <button id="zoomOutBtn" class="btn btn-secondary" disabled>Zoom out</button>
+            <button id="zoomInBtn" class="btn btn-secondary" disabled>Zoom in</button>
+            <button id="zoomResetBtn" class="btn btn-secondary" disabled>Reset</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart-shell">
+        <section class="plot-panel">
+          <div class="plot-panel-header">
+            <h3>Session overview</h3>
+            <span>Click to recenter, or drag while selection mode is enabled to mark a segment</span>
+          </div>
+          <div class="plot-canvas-wrap plot-canvas-wrap-wide">
+            <canvas id="overviewCanvas" width="1280" height="220"></canvas>
+          </div>
+        </section>
+
+        <section class="plot-panel">
+          <div class="plot-panel-header">
+            <h3>Detail comparison</h3>
+            <span>Shift+scroll to pan, or drag while selection mode is enabled to mark a segment</span>
+          </div>
+          <div class="plot-canvas-wrap plot-canvas-wrap-detail">
+            <canvas id="detailCanvas" width="1280" height="700"></canvas>
+          </div>
+        </section>
+
+        <div class="time-scroll-wrap">
+          <label for="timeScrollRange">Time scroll</label>
+          <input id="timeScrollRange" type="range" min="0" max="0" value="0" step="1" disabled />
+          <span class="time-scroll-hint">Use the bar or hold <kbd>Shift</kbd> and scroll to pan across the session.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card boundaries-card trace-card">
+      <div class="boundaries-header">
+        <h2>Trace legend</h2>
+        <p>These are the channels shown in the viewer. The export action applies the current BioZ shift to all <code>txt_*</code> columns in the loaded CSV and records the chosen audio shift as metadata.</p>
+      </div>
+      <div id="traceList" class="boundary-list empty">No synchronized CSV loaded yet.</div>
+    </section>
+  </main>
+</body>
+</html>

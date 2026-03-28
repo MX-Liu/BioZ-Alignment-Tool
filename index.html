@@ -1,0 +1,1428 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BLE Sensor Logger - Chrome</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-content">
+      <div>
+        <h1>BLE Sensor Logger (Chrome)</h1>
+        <p>Desktop dashboard for real-time BLE sensing (without smartphone sensor capture)</p>
+      </div>
+      <div class="topbar-actions">
+        <div class="topbar-note">Workflow: Connect → Configure → Start → Compare → Save</div>
+        <a href="./label-editor.html" class="btn btn-secondary btn-study">Label editor</a>
+        <a href="./bioz-aligner.html" class="btn btn-secondary btn-study">BioZ aligner</a>
+        <button id="btnExportAllData" class="btn btn-secondary btn-study">Export all data</button>
+        <button id="btnOpenStudy" class="btn btn-secondary btn-study">Study</button>
+      </div>
+    </div>
+  </header>
+
+  <section id="studyPage" class="study-page" hidden aria-hidden="true">
+    <div class="study-shell">
+      <aside class="study-sidebar card">
+        <div class="study-kicker">Experiment guide</div>
+        <h2>Study onboarding</h2>
+        <p class="study-sidebar-copy">
+          Use this workflow to register the participant, guide chord familiarization, run calibration, complete the fretting sessions, answer the post-study questionnaire, finish the strumming session, and close with a post-strumming questionnaire.
+        </p>
+
+        <div class="study-sidebar-status" aria-live="polite">
+          <span class="study-sidebar-status-label">Session Progress</span>
+          <strong id="studySidebarStatus">0 of 8 steps complete</strong>
+          <p id="studySidebarHint" class="study-sidebar-status-copy">Complete the participant profile to unlock the rest of the study flow.</p>
+        </div>
+
+        <div class="study-step-list" role="list">
+          <div class="study-step-item" data-step-indicator="0" role="listitem">
+            <span class="study-step-number">1</span>
+            <div>
+              <strong>Participant information</strong>
+              <p>Collect demographics and guitar background.</p>
+            </div>
+          </div>
+          <div class="study-step-item" data-step-indicator="1" role="listitem">
+            <span class="study-step-number">2</span>
+            <div>
+              <strong>Chord familiarization</strong>
+              <p>Practice C, Em, D, and G before the task.</p>
+            </div>
+          </div>
+          <div class="study-step-item" data-step-indicator="2" role="listitem">
+            <span class="study-step-number">3</span>
+            <div>
+              <strong>Calibration session</strong>
+              <p>Collect normal fretting references.</p>
+            </div>
+          </div>
+          <div class="study-step-item" data-step-indicator="3" role="listitem">
+            <span class="study-step-number">4</span>
+            <div>
+              <strong>Chord Form–Hold–Release</strong>
+              <p>Run randomized trials with timed cues and repetitions.</p>
+            </div>
+          </div>
+          <div class="study-step-item" data-step-indicator="4" role="listitem">
+            <span class="study-step-number">5</span>
+            <div>
+              <strong>Effort Manipulation</strong>
+              <p>Ramp force from normal to hard, then back down to light across all chords.</p>
+            </div>
+          </div>
+          <div class="study-step-item" data-step-indicator="5" role="listitem">
+            <span class="study-step-number">6</span>
+            <div>
+              <strong>Post-study questionnaire</strong>
+              <p>Collect the participant's comfort, usability, and practicality ratings.</p>
+            </div>
+          </div>
+          <div class="study-step-item" data-step-indicator="6" role="listitem">
+            <span class="study-step-number">7</span>
+            <div>
+              <strong>Strumming speed</strong>
+              <p>Run 60, 90, 120, and 150 BPM blocks with cued and silent strumming.</p>
+            </div>
+          </div>
+          <div class="study-step-item" data-step-indicator="7" role="listitem">
+            <span class="study-step-number">8</span>
+            <div>
+              <strong>Post-strumming questionnaire</strong>
+              <p>Collect comfort, tempo-control, and practice-fit ratings after strumming.</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="study-main card">
+        <div class="study-toolbar">
+          <div class="study-toolbar-actions">
+            <button id="btnCloseStudy" class="btn btn-secondary">← Back to dashboard</button>
+            <button id="btnClearStudyData" class="btn btn-danger">Clear study data</button>
+            <button id="btnStudyFullscreen" class="btn btn-secondary">Full screen</button>
+          </div>
+          <span id="studyProgressText" class="study-progress-text">Step 1 of 8</span>
+        </div>
+
+        <section id="studyStep1" class="study-step" data-study-step="0">
+          <div class="study-step-header study-step-header-rich">
+            <div>
+              <div class="study-step-eyebrow">Step 1 · Participant setup</div>
+              <h2>Participant information</h2>
+              <p>Please complete the participant profile before proceeding.</p>
+            </div>
+            <aside class="study-step-meter" aria-live="polite">
+              <span class="study-step-meter-label">Readiness</span>
+              <strong id="studyParticipantCompletion">0 / 8 complete</strong>
+              <div class="study-inline-progress" aria-hidden="true">
+                <div id="studyParticipantCompletionBar" class="study-inline-progress-fill"></div>
+              </div>
+              <p id="studyParticipantSummary" class="study-step-meter-copy">Capture identity, handedness, and guitar background to unlock familiarization.</p>
+            </aside>
+          </div>
+
+          <div class="study-form-sections">
+            <section class="study-form-section">
+              <div class="study-form-section-header">
+                <h3>Participant profile</h3>
+                <p>Record the session identity and basic participant attributes used across the study.</p>
+              </div>
+              <div class="study-form-grid">
+                <label class="study-field" data-study-field="name">
+                  <span>Name <em>Required</em></span>
+                  <input id="studyName" type="text" placeholder="Participant name or alias" autocomplete="name" aria-describedby="studyNameHint" />
+                  <small id="studyNameHint" class="study-field-hint">Use the participant alias or session identifier used for this study.</small>
+                </label>
+
+                <label class="study-field" data-study-field="age">
+                  <span>Age <em>Required</em></span>
+                  <input id="studyAge" type="number" min="1" step="1" placeholder="Age" aria-describedby="studyAgeHint" />
+                  <small id="studyAgeHint" class="study-field-hint">Enter the participant age in whole years.</small>
+                </label>
+
+                <label class="study-field" data-study-field="gender">
+                  <span>Gender <em>Required</em></span>
+                  <select id="studyGender" aria-describedby="studyGenderHint">
+                    <option value="">Select…</option>
+                    <option value="female">Female</option>
+                    <option value="male">Male</option>
+                    <option value="non-binary">Non-binary</option>
+                    <option value="prefer-not-to-say">Prefer not to say</option>
+                    <option value="self-describe">Self describe</option>
+                  </select>
+                  <small id="studyGenderHint" class="study-field-hint">Choose the participant response exactly as reported.</small>
+                </label>
+
+                <label class="study-field" data-study-field="handedness">
+                  <span>Handedness <em>Required</em></span>
+                  <select id="studyHandedness" aria-describedby="studyHandednessHint">
+                    <option value="">Select…</option>
+                    <option value="right-handed">Right-handed</option>
+                    <option value="left-handed">Left-handed</option>
+                    <option value="ambidextrous">Ambidextrous</option>
+                  </select>
+                  <small id="studyHandednessHint" class="study-field-hint">This will help interpret guitar posture and fretting strategy later.</small>
+                </label>
+              </div>
+            </section>
+
+            <section class="study-form-section">
+              <div class="study-form-section-header">
+                <h3>Guitar background</h3>
+                <p>Capture the playing context needed to interpret participant performance and effort changes.</p>
+              </div>
+              <div class="study-form-grid">
+                <label class="study-field" data-study-field="experienceYears">
+                  <span>Years of guitar experience <em>Required</em></span>
+                  <input id="studyExperienceYears" type="number" min="0" step="0.1" placeholder="e.g. 2.5" aria-describedby="studyExperienceYearsHint" />
+                  <small id="studyExperienceYearsHint" class="study-field-hint">Use 0 for beginners with no prior guitar experience.</small>
+                </label>
+
+                <label class="study-field" data-study-field="practiceTime">
+                  <span>Weekly practice time (hours) <em>Required</em></span>
+                  <input id="studyPracticeTime" type="number" min="0" step="0.1" placeholder="e.g. 4" aria-describedby="studyPracticeTimeHint" />
+                  <small id="studyPracticeTimeHint" class="study-field-hint">Estimate typical practice time over a recent week.</small>
+                </label>
+
+                <label class="study-field study-field-full" data-study-field="openChordProficiency">
+                  <span>Please rate your proficiency level in playing open chords <em>Required</em></span>
+                  <div class="study-rating-control">
+                    <div class="study-questionnaire-slider-row">
+                      <input id="studyOpenChordProficiency" class="study-questionnaire-slider" type="range" min="0" max="100" step="1" value="50" data-study-participant-range="openChordProficiency" data-study-participant-range-answered="false" aria-describedby="studyOpenChordProficiencyValue studyOpenChordProficiencyScale studyOpenChordProficiencyHint" />
+                      <output id="studyOpenChordProficiencyValue" class="study-questionnaire-value" data-study-participant-range-value="openChordProficiency" for="studyOpenChordProficiency">--</output>
+                    </div>
+                    <div id="studyOpenChordProficiencyScale" class="study-questionnaire-scale" aria-hidden="true">
+                      <span>0</span>
+                      <span>100</span>
+                    </div>
+                  </div>
+                  <small id="studyOpenChordProficiencyHint" class="study-field-hint">Ask the participant to self-rate open-chord proficiency on a 0 to 100 scale.</small>
+                </label>
+
+                <label class="study-field study-field-full" data-study-field="playStyle">
+                  <span>Usual playing style <em>Required</em></span>
+                  <select id="studyPlayStyle" aria-describedby="studyPlayStyleHint">
+                    <option value="">Select…</option>
+                    <option value="fingerstyle">Mostly fingerstyle</option>
+                    <option value="pick">Mostly with a pick</option>
+                    <option value="both">Both fingerstyle and pick</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <small id="studyPlayStyleHint" class="study-field-hint">Choose the participant’s default playing approach rather than an occasional technique.</small>
+                </label>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="studyStep3" class="study-step" data-study-step="1" hidden>
+          <div class="study-step-header study-step-header-rich">
+            <div>
+              <div class="study-step-eyebrow">Step 2 · Practice checkpoint</div>
+              <h2>Chord familiarization</h2>
+              <p>
+                Ask the participant to fret the following four chords for familiarization before starting the experiment.
+              </p>
+            </div>
+            <aside class="study-step-meter" aria-live="polite">
+              <span class="study-step-meter-label">Checklist</span>
+              <strong id="studyFamiliarizationProgress">0 / 4 chords confirmed</strong>
+              <div class="study-inline-progress" aria-hidden="true">
+                <div id="studyFamiliarizationProgressBar" class="study-inline-progress-fill"></div>
+              </div>
+              <p id="studyFamiliarizationSummary" class="study-step-meter-copy">All four chords and the readiness confirmation are required before calibration.</p>
+            </aside>
+          </div>
+
+          <div class="study-chord-grid">
+            <label class="study-chord-card" data-study-chord="C">
+              <input id="studyChordC" type="checkbox" />
+              <span class="study-chord-name">C</span>
+              <span class="study-chord-copy">Practice the C major chord shape.</span>
+              <div class="study-chord-chart" aria-label="C major chord chart">
+                <svg class="study-chord-svg" viewBox="0 0 180 240" role="img" aria-hidden="true">
+                  <text x="40" y="24" class="study-chord-marker study-chord-muted">X</text>
+                  <text x="100" y="24" class="study-chord-marker study-chord-open">O</text>
+                  <text x="140" y="24" class="study-chord-marker study-chord-open">O</text>
+
+                  <line x1="40" y1="44" x2="140" y2="44" class="study-chord-nut" />
+                  <line x1="40" y1="80" x2="140" y2="80" class="study-chord-line" />
+                  <line x1="40" y1="116" x2="140" y2="116" class="study-chord-line" />
+                  <line x1="40" y1="152" x2="140" y2="152" class="study-chord-line" />
+                  <line x1="40" y1="188" x2="140" y2="188" class="study-chord-line" />
+
+                  <line x1="40" y1="44" x2="40" y2="188" class="study-chord-line" />
+                  <line x1="60" y1="44" x2="60" y2="188" class="study-chord-line" />
+                  <line x1="80" y1="44" x2="80" y2="188" class="study-chord-line" />
+                  <line x1="100" y1="44" x2="100" y2="188" class="study-chord-line" />
+                  <line x1="120" y1="44" x2="120" y2="188" class="study-chord-line" />
+                  <line x1="140" y1="44" x2="140" y2="188" class="study-chord-line" />
+
+                  <circle cx="60" cy="134" r="7" class="study-chord-note" />
+                  <circle cx="80" cy="98" r="7" class="study-chord-note" />
+                  <circle cx="120" cy="62" r="7" class="study-chord-note" />
+
+                  <text x="20" y="66" class="study-chord-fret-text">1</text>
+                  <text x="20" y="102" class="study-chord-fret-text">2</text>
+                  <text x="20" y="138" class="study-chord-fret-text">3</text>
+                  <text x="20" y="174" class="study-chord-fret-text">4</text>
+
+                  <text x="40" y="212" class="study-chord-string-text">E</text>
+                  <text x="60" y="212" class="study-chord-string-text">A</text>
+                  <text x="80" y="212" class="study-chord-string-text">D</text>
+                  <text x="100" y="212" class="study-chord-string-text">G</text>
+                  <text x="120" y="212" class="study-chord-string-text">B</text>
+                  <text x="140" y="212" class="study-chord-string-text">e</text>
+                </svg>
+              </div>
+              <span class="study-chord-fingering">Fingering: X32010</span>
+            </label>
+
+            <label class="study-chord-card" data-study-chord="Em">
+              <input id="studyChordEm" type="checkbox" />
+              <span class="study-chord-name">Em</span>
+              <span class="study-chord-copy">Practice the E minor chord shape.</span>
+              <div class="study-chord-chart" aria-label="E minor chord chart">
+                <svg class="study-chord-svg" viewBox="0 0 180 240" role="img" aria-hidden="true">
+                  <text x="40" y="24" class="study-chord-marker study-chord-open">O</text>
+                  <text x="60" y="24" class="study-chord-marker study-chord-open">O</text>
+                  <text x="140" y="24" class="study-chord-open study-chord-marker">O</text>
+
+                  <line x1="40" y1="44" x2="140" y2="44" class="study-chord-nut" />
+                  <line x1="40" y1="80" x2="140" y2="80" class="study-chord-line" />
+                  <line x1="40" y1="116" x2="140" y2="116" class="study-chord-line" />
+                  <line x1="40" y1="152" x2="140" y2="152" class="study-chord-line" />
+                  <line x1="40" y1="188" x2="140" y2="188" class="study-chord-line" />
+
+                  <line x1="40" y1="44" x2="40" y2="188" class="study-chord-line" />
+                  <line x1="60" y1="44" x2="60" y2="188" class="study-chord-line" />
+                  <line x1="80" y1="44" x2="80" y2="188" class="study-chord-line" />
+                  <line x1="100" y1="44" x2="100" y2="188" class="study-chord-line" />
+                  <line x1="120" y1="44" x2="120" y2="188" class="study-chord-line" />
+                  <line x1="140" y1="44" x2="140" y2="188" class="study-chord-line" />
+
+                  <circle cx="60" cy="98" r="7" class="study-chord-note" />
+                  <circle cx="80" cy="98" r="7" class="study-chord-note" />
+
+                  <text x="20" y="66" class="study-chord-fret-text">1</text>
+                  <text x="20" y="102" class="study-chord-fret-text">2</text>
+                  <text x="20" y="138" class="study-chord-fret-text">3</text>
+                  <text x="20" y="174" class="study-chord-fret-text">4</text>
+
+                  <text x="40" y="212" class="study-chord-string-text">E</text>
+                  <text x="60" y="212" class="study-chord-string-text">A</text>
+                  <text x="80" y="212" class="study-chord-string-text">D</text>
+                  <text x="100" y="212" class="study-chord-string-text">G</text>
+                  <text x="120" y="212" class="study-chord-string-text">B</text>
+                  <text x="140" y="212" class="study-chord-string-text">e</text>
+                </svg>
+              </div>
+              <span class="study-chord-fingering">Fingering: 022000</span>
+            </label>
+
+            <label class="study-chord-card" data-study-chord="D">
+              <input id="studyChordD" type="checkbox" />
+              <span class="study-chord-name">D</span>
+              <span class="study-chord-copy">Practice the D major chord shape.</span>
+              <div class="study-chord-chart" aria-label="D major chord chart">
+                <svg class="study-chord-svg" viewBox="0 0 180 240" role="img" aria-hidden="true">
+                  <text x="40" y="24" class="study-chord-marker study-chord-muted">X</text>
+                  <text x="60" y="24" class="study-chord-marker study-chord-muted">X</text>
+                  <text x="80" y="24" class="study-chord-marker study-chord-open">O</text>
+
+                  <line x1="40" y1="44" x2="140" y2="44" class="study-chord-nut" />
+                  <line x1="40" y1="80" x2="140" y2="80" class="study-chord-line" />
+                  <line x1="40" y1="116" x2="140" y2="116" class="study-chord-line" />
+                  <line x1="40" y1="152" x2="140" y2="152" class="study-chord-line" />
+                  <line x1="40" y1="188" x2="140" y2="188" class="study-chord-line" />
+
+                  <line x1="40" y1="44" x2="40" y2="188" class="study-chord-line" />
+                  <line x1="60" y1="44" x2="60" y2="188" class="study-chord-line" />
+                  <line x1="80" y1="44" x2="80" y2="188" class="study-chord-line" />
+                  <line x1="100" y1="44" x2="100" y2="188" class="study-chord-line" />
+                  <line x1="120" y1="44" x2="120" y2="188" class="study-chord-line" />
+                  <line x1="140" y1="44" x2="140" y2="188" class="study-chord-line" />
+
+                  <circle cx="100" cy="98" r="7" class="study-chord-note" />
+                  <circle cx="120" cy="134" r="7" class="study-chord-note" />
+                  <circle cx="140" cy="98" r="7" class="study-chord-note" />
+
+                  <text x="20" y="66" class="study-chord-fret-text">1</text>
+                  <text x="20" y="102" class="study-chord-fret-text">2</text>
+                  <text x="20" y="138" class="study-chord-fret-text">3</text>
+                  <text x="20" y="174" class="study-chord-fret-text">4</text>
+
+                  <text x="40" y="212" class="study-chord-string-text">E</text>
+                  <text x="60" y="212" class="study-chord-string-text">A</text>
+                  <text x="80" y="212" class="study-chord-string-text">D</text>
+                  <text x="100" y="212" class="study-chord-string-text">G</text>
+                  <text x="120" y="212" class="study-chord-string-text">B</text>
+                  <text x="140" y="212" class="study-chord-string-text">e</text>
+                </svg>
+              </div>
+              <span class="study-chord-fingering">Fingering: XX0232</span>
+            </label>
+
+            <label class="study-chord-card" data-study-chord="G">
+              <input id="studyChordG" type="checkbox" />
+              <span class="study-chord-name">G</span>
+              <span class="study-chord-copy">Practice the G major chord shape.</span>
+              <div class="study-chord-chart" aria-label="G major chord chart">
+                <svg class="study-chord-svg" viewBox="0 0 180 240" role="img" aria-hidden="true">
+                  <text x="80" y="24" class="study-chord-open study-chord-marker">O</text>
+                  <text x="100" y="24" class="study-chord-open study-chord-marker">O</text>
+                  <text x="120" y="24" class="study-chord-open study-chord-marker">O</text>
+
+                  <line x1="40" y1="44" x2="140" y2="44" class="study-chord-nut" />
+                  <line x1="40" y1="80" x2="140" y2="80" class="study-chord-line" />
+                  <line x1="40" y1="116" x2="140" y2="116" class="study-chord-line" />
+                  <line x1="40" y1="152" x2="140" y2="152" class="study-chord-line" />
+                  <line x1="40" y1="188" x2="140" y2="188" class="study-chord-line" />
+
+                  <line x1="40" y1="44" x2="40" y2="188" class="study-chord-line" />
+                  <line x1="60" y1="44" x2="60" y2="188" class="study-chord-line" />
+                  <line x1="80" y1="44" x2="80" y2="188" class="study-chord-line" />
+                  <line x1="100" y1="44" x2="100" y2="188" class="study-chord-line" />
+                  <line x1="120" y1="44" x2="120" y2="188" class="study-chord-line" />
+                  <line x1="140" y1="44" x2="140" y2="188" class="study-chord-line" />
+
+                  <circle cx="40" cy="134" r="7" class="study-chord-note" />
+                  <circle cx="60" cy="98" r="7" class="study-chord-note" />
+                  <circle cx="140" cy="134" r="7" class="study-chord-note" />
+
+                  <text x="20" y="66" class="study-chord-fret-text">1</text>
+                  <text x="20" y="102" class="study-chord-fret-text">2</text>
+                  <text x="20" y="138" class="study-chord-fret-text">3</text>
+                  <text x="20" y="174" class="study-chord-fret-text">4</text>
+
+                  <text x="40" y="212" class="study-chord-string-text">E</text>
+                  <text x="60" y="212" class="study-chord-string-text">A</text>
+                  <text x="80" y="212" class="study-chord-string-text">D</text>
+                  <text x="100" y="212" class="study-chord-string-text">G</text>
+                  <text x="120" y="212" class="study-chord-string-text">B</text>
+                  <text x="140" y="212" class="study-chord-string-text">e</text>
+                </svg>
+              </div>
+              <span class="study-chord-fingering">Fingering: 320003</span>
+            </label>
+          </div>
+
+          <label class="study-field study-field-full" data-study-field="familiarization-notes">
+            <span>Facilitator notes <em>Optional</em></span>
+            <textarea id="studyFamiliarizationNotes" rows="4" placeholder="Add any notes about the familiarization step"></textarea>
+            <small class="study-field-hint">Use this for posture changes, hesitation, or any chord-specific issues worth remembering later.</small>
+          </label>
+
+          <label class="study-checkbox" data-study-field="familiarization-ready">
+            <input id="studyFamiliarizationReady" type="checkbox" />
+            <span>The participant has practiced C, Em, D, and G and is ready to continue.</span>
+          </label>
+          <div id="studyFamiliarizationReadyHint" class="study-checkbox-hint">Confirm readiness after all four chord cards above have been checked.</div>
+
+          <div id="studySummary" class="study-summary" hidden></div>
+        </section>
+
+        <section id="studyStep4" class="study-step" data-study-step="2" hidden>
+          <div class="study-step-header">
+            <h2>Calibration session</h2>
+            <p>
+              Ask the participant to play each chord using normal fretting effort with the configured play and rest timings below. The chord order is randomized and the whole process is repeated 3 times.
+            </p>
+          </div>
+
+          <div id="studyCalibrationChordStrip" class="study-experiment-chord-strip"></div>
+
+          <div class="study-experiment-layout">
+            <section class="study-experiment-card">
+              <h3 class="study-experiment-title">Calibration target</h3>
+              <div class="study-protocol-grid">
+                <div class="study-protocol-item study-effort-card normal">
+                  <strong>NORMAL</strong>
+                  <span data-study-phase-duration-label="true" data-study-phase-group="calibration" data-study-phase-key="PLAY">8 s</span>
+                  <p>Use your typical playing pressure and hold the chord for the full interval.</p>
+                </div>
+                <div class="study-protocol-item">
+                  <strong>REST</strong>
+                  <span data-study-phase-duration-label="true" data-study-phase-group="calibration" data-study-phase-key="REST">2 s</span>
+                  <p>Relax before the next randomized chord prompt begins automatically.</p>
+                </div>
+                <div class="study-protocol-item">
+                  <strong>Sequence</strong>
+                  <span>12 prompts total</span>
+                  <p>Four chords × one force level × three rounds. The session advances automatically.</p>
+                </div>
+              </div>
+
+              <div class="study-phase-settings">
+                <div class="study-phase-settings-header">
+                  <strong>Phase timings</strong>
+                  <span>Seconds</span>
+                </div>
+                <div class="study-phase-settings-grid study-phase-settings-grid-2">
+                  <label class="study-phase-setting">
+                    <span>Play</span>
+                    <input type="number" min="0.5" step="0.5" value="8" data-study-phase-duration-input="true" data-study-phase-group="calibration" data-study-phase-key="PLAY" />
+                  </label>
+                  <label class="study-phase-setting">
+                    <span>Rest</span>
+                    <input type="number" min="0.5" step="0.5" value="2" data-study-phase-duration-input="true" data-study-phase-group="calibration" data-study-phase-key="REST" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="study-experiment-controls">
+                <button id="studyCalibrationStart" class="btn btn-primary">Start calibration</button>
+                <button id="studyCalibrationStop" class="btn btn-secondary">Stop</button>
+              </div>
+
+              <div class="study-experiment-stats">
+                <div class="study-stat-pill">
+                  <span>Status</span>
+                  <strong id="studyCalibrationStatus">Ready</strong>
+                </div>
+                <div class="study-stat-pill">
+                  <span>Prompt</span>
+                  <strong id="studyCalibrationTrial">0 / 36</strong>
+                </div>
+                <div class="study-stat-pill">
+                  <span>Target force</span>
+                  <strong id="studyCalibrationTarget">—</strong>
+                </div>
+                <div class="study-stat-pill">
+                  <span>Countdown</span>
+                  <strong id="studyCalibrationTimer">10.0 s</strong>
+                </div>
+              </div>
+
+              <div class="study-progress-bar" aria-label="Calibration countdown progress">
+                <div id="studyCalibrationProgressBar" class="study-progress-bar-fill"></div>
+                <div id="studyCalibrationPhaseSegment" class="study-progress-bar-segment"></div>
+                <div id="studyCalibrationThreshold" class="study-progress-bar-threshold study-progress-bar-threshold-horizontal" style="left: 80%;"></div>
+              </div>
+              <div class="study-count-grid">
+                <div class="study-count-card"><span>Normal</span><strong id="studyCalibrationCountNormal">0 / 12</strong></div>
+                <div class="study-count-card"><span>Prompts covered</span><strong id="studyCalibrationChordCoverage">0 / 12</strong></div>
+              </div>
+
+              <div id="studyCalibrationSequenceHint" class="study-sequence-hint">
+                The chord order will be shuffled for each of the 3 rounds using normal force only.
+              </div>
+            </section>
+
+            <section class="study-experiment-card study-live-card">
+              <h3 class="study-experiment-title">Live cue</h3>
+              <div id="studyCalibrationLiveCue" class="study-live-cue">
+                <div class="study-live-label">Calibration chord</div>
+                <div id="studyCalibrationChord" class="study-live-chord">—</div>
+                <div id="studyCalibrationEffort" class="study-live-phase">Waiting</div>
+                <div class="study-live-chart-layout">
+                  <div class="study-live-progress-column" aria-label="Calibration countdown">
+                    <strong id="studyCalibrationLiveTimer" class="study-live-progress-time">10.0 s</strong>
+                    <div id="studyCalibrationLiveCaption" class="study-live-progress-caption">Play 8 s, then rest 2 s</div>
+                    <div class="study-progress-bar study-progress-bar-vertical" aria-label="Calibration countdown progress">
+                      <div id="studyCalibrationLiveProgressBar" class="study-progress-bar-fill study-progress-bar-fill-vertical"></div>
+                      <div id="studyCalibrationLivePhaseSegment" class="study-progress-bar-segment study-progress-bar-segment-vertical"></div>
+                      <div id="studyCalibrationLiveThreshold" class="study-progress-bar-threshold study-progress-bar-threshold-vertical" style="top: 80%;"></div>
+                    </div>
+                  </div>
+                  <div id="studyCalibrationChart" class="study-live-chart">
+                    <div class="study-live-chart-empty">Chord chart will appear here.</div>
+                  </div>
+                </div>
+                <p id="studyCalibrationInstruction" class="study-live-instruction">
+                  Press start to begin the randomized calibration sequence.
+                </p>
+                <div class="study-floating-actions">
+                  <button id="studyCalibrationStopFloating" class="btn btn-secondary study-floating-action" hidden>Stop calibration</button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="studyStep5" class="study-step" data-study-step="3" hidden>
+          <div class="study-step-header">
+            <h2>Chord Form–Hold–Release experiment</h2>
+            <p>
+              Each trial follows the phase timings configured below. The chord order is randomized, with 10 repetitions each for C, Em, D, and G.
+            </p>
+          </div>
+
+          <div id="studyExperimentChordStrip" class="study-experiment-chord-strip"></div>
+
+          <div class="study-experiment-layout">
+            <section class="study-experiment-card">
+              <h3 class="study-experiment-title">Protocol</h3>
+              <div class="study-protocol-grid">
+                <div class="study-protocol-item">
+                  <strong>REST</strong>
+                  <span data-study-phase-duration-label="true" data-study-phase-group="experiment" data-study-phase-key="REST">3 s</span>
+                  <p>Relax your left hand.</p>
+                </div>
+                <div class="study-protocol-item">
+                  <strong>FORM CHORD</strong>
+                  <span data-study-phase-duration-label="true" data-study-phase-group="experiment" data-study-phase-key="FORM CHORD">2 s</span>
+                  <p>Form the displayed chord when the beep sounds at phase start.</p>
+                </div>
+                <div class="study-protocol-item">
+                  <strong>HOLD STILL</strong>
+                  <span data-study-phase-duration-label="true" data-study-phase-group="experiment" data-study-phase-key="HOLD STILL">2 s</span>
+                  <p>Keep the fretting hand still.</p>
+                </div>
+                <div class="study-protocol-item">
+                  <strong>RELEASE</strong>
+                  <span data-study-phase-duration-label="true" data-study-phase-group="experiment" data-study-phase-key="RELEASE">1 s</span>
+                  <p>Release the chord.</p>
+                </div>
+              </div>
+
+              <div class="study-phase-settings">
+                <div class="study-phase-settings-header">
+                  <strong>Phase timings</strong>
+                  <span>Seconds</span>
+                </div>
+                <div class="study-phase-settings-grid">
+                  <label class="study-phase-setting">
+                    <span>Rest</span>
+                    <input type="number" min="0.5" step="0.5" value="3" data-study-phase-duration-input="true" data-study-phase-group="experiment" data-study-phase-key="REST" />
+                  </label>
+                  <label class="study-phase-setting">
+                    <span>Form chord</span>
+                    <input type="number" min="0.5" step="0.5" value="2" data-study-phase-duration-input="true" data-study-phase-group="experiment" data-study-phase-key="FORM CHORD" />
+                  </label>
+                  <label class="study-phase-setting">
+                    <span>Hold still</span>
+                    <input type="number" min="0.5" step="0.5" value="2" data-study-phase-duration-input="true" data-study-phase-group="experiment" data-study-phase-key="HOLD STILL" />
+                  </label>
+                  <label class="study-phase-setting">
+                    <span>Release</span>
+                    <input type="number" min="0.5" step="0.5" value="1" data-study-phase-duration-input="true" data-study-phase-group="experiment" data-study-phase-key="RELEASE" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="study-experiment-controls">
+                <button id="studyExperimentStart" class="btn btn-primary">Start experiment</button>
+                <button id="studyExperimentStop" class="btn btn-secondary">Stop</button>
+              </div>
+
+              <div class="study-experiment-stats">
+                <div class="study-stat-pill">
+                  <span>Status</span>
+                  <strong id="studyExperimentStatus">Ready</strong>
+                </div>
+                <div class="study-stat-pill">
+                  <span>Trial</span>
+                  <strong id="studyExperimentTrial">0 / 40</strong>
+                </div>
+                <div class="study-stat-pill">
+                  <span>Countdown</span>
+                  <strong id="studyExperimentTimer">8.0 s</strong>
+                </div>
+              </div>
+
+              <div class="study-progress-bar">
+                <div id="studyExperimentProgressBar" class="study-progress-bar-fill"></div>
+                <div id="studyExperimentPhaseSegment" class="study-progress-bar-segment"></div>
+              </div>
+
+              <div class="study-count-grid">
+                <div class="study-count-card"><span>C</span><strong id="studyCountC">0 / 10</strong></div>
+                <div class="study-count-card"><span>Em</span><strong id="studyCountEm">0 / 10</strong></div>
+                <div class="study-count-card"><span>D</span><strong id="studyCountD">0 / 10</strong></div>
+                <div class="study-count-card"><span>G</span><strong id="studyCountG">0 / 10</strong></div>
+              </div>
+
+              <div id="studyExperimentSequenceHint" class="study-sequence-hint">
+                The trial order will be shuffled when the experiment starts.
+              </div>
+            </section>
+
+            <section class="study-experiment-card study-live-card">
+              <h3 class="study-experiment-title">Live cue</h3>
+              <div id="studyExperimentLiveCue" class="study-live-cue study-experiment-cue">
+                <div class="study-experiment-hero study-experiment-hero-compact">
+                  <aside class="study-experiment-support study-experiment-support-only">
+                    <div class="study-live-status-card">
+                      <span class="study-live-status-label">Current phase</span>
+                      <div id="studyExperimentPhase" class="study-live-phase">Waiting</div>
+                    </div>
+
+                    <div class="study-live-status-card">
+                      <span class="study-live-status-label">Time remaining</span>
+                      <strong id="studyExperimentLiveTimer" class="study-live-progress-time">8.0 s</strong>
+                    </div>
+
+                    <div class="study-next-chord study-next-chord-panel" aria-live="polite">
+                      <span class="study-next-chord-label">Next chord</span>
+                      <strong id="studyExperimentNextChord" class="study-next-chord-value">—</strong>
+                    </div>
+
+                    <p id="studyExperimentInstruction" class="study-live-instruction study-live-instruction-card">
+                      Press start to begin the randomized chord sequence.
+                    </p>
+
+                    <div class="study-phase-legend" aria-label="Experiment cue phases">
+                      <div class="study-phase-chip rest" data-study-phase-chip-label="Rest" data-study-phase-group="experiment" data-study-phase-key="REST">Rest · 3 s</div>
+                      <div class="study-phase-chip form" data-study-phase-chip-label="Form" data-study-phase-group="experiment" data-study-phase-key="FORM CHORD">Form · 2 s</div>
+                      <div class="study-phase-chip hold" data-study-phase-chip-label="Hold" data-study-phase-group="experiment" data-study-phase-key="HOLD STILL">Hold · 2 s</div>
+                      <div class="study-phase-chip release" data-study-phase-chip-label="Release" data-study-phase-group="experiment" data-study-phase-key="RELEASE">Release · 1 s</div>
+                    </div>
+                  </aside>
+                </div>
+                <div class="study-floating-actions">
+                  <button id="studyExperimentFullscreenFloating" class="btn btn-secondary study-floating-action" hidden>Full screen</button>
+                  <button id="studyExperimentStopFloating" class="btn btn-secondary study-floating-action" hidden>Stop experiment</button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="studyStep6" class="study-step" data-study-step="4" hidden>
+          <div class="study-step-header">
+            <h2>Effort Manipulation session</h2>
+            <p>
+              Show one chord at a time and ask the participant to perform it with continuous force variation using the configured phase timings below. Complete all chords and repeat the whole session for 3 rounds.
+            </p>
+          </div>
+
+          <div id="studyEffortChordStrip" class="study-experiment-chord-strip"></div>
+
+          <div class="study-experiment-layout">
+            <section class="study-experiment-card">
+              <h3 class="study-experiment-title">Protocol</h3>
+              <div class="study-protocol-grid">
+                <div class="study-protocol-item">
+                  <strong>CHORD TRIAL</strong>
+                  <span id="studyEffortTrialDurationSummary">15 s</span>
+                  <p>Perform the displayed chord and vary the fretting force slowly from light to hard.</p>
+                </div>
+                <div class="study-protocol-item">
+                  <strong>REST</strong>
+                  <span id="studyEffortRestDurationSummary">5 s</span>
+                  <p>Pause between chords. Three shuffled rounds cover all four chords.</p>
+                </div>
+              </div>
+
+              <div class="study-phase-settings">
+                <div class="study-phase-settings-header">
+                  <strong>Phase timings</strong>
+                  <span>Seconds</span>
+                </div>
+                <div class="study-phase-settings-grid">
+                  <label class="study-phase-setting">
+                    <span>Form normal</span>
+                    <input type="number" min="0.5" step="0.5" value="5" data-study-phase-duration-input="true" data-study-phase-group="effort" data-study-phase-key="FORM NORMAL" />
+                  </label>
+                  <label class="study-phase-setting">
+                    <span>Ramp to hard</span>
+                    <input type="number" min="0.5" step="0.5" value="5" data-study-phase-duration-input="true" data-study-phase-group="effort" data-study-phase-key="RAMP TO HARD" />
+                  </label>
+                  <label class="study-phase-setting">
+                    <span>Ramp to light</span>
+                    <input type="number" min="0.5" step="0.5" value="5" data-study-phase-duration-input="true" data-study-phase-group="effort" data-study-phase-key="RAMP TO LIGHT" />
+                  </label>
+                  <label class="study-phase-setting">
+                    <span>Rest</span>
+                    <input type="number" min="0.5" step="0.5" value="5" data-study-phase-duration-input="true" data-study-phase-group="effort" data-study-phase-key="REST" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="study-experiment-controls">
+                <button id="studyEffortStart" class="btn btn-primary">Start effort session</button>
+                <button id="studyEffortStop" class="btn btn-secondary">Stop</button>
+              </div>
+
+              <div class="study-experiment-stats">
+                <div class="study-stat-pill">
+                  <span>Status</span>
+                  <strong id="studyEffortStatus">Ready</strong>
+                </div>
+                <div class="study-stat-pill">
+                  <span>Trial</span>
+                  <strong id="studyEffortTrial">0 / 12</strong>
+                </div>
+                <div class="study-stat-pill">
+                  <span>Timer</span>
+                  <strong id="studyEffortTimer">15.0 s</strong>
+                </div>
+              </div>
+
+              <div class="study-count-grid">
+                <div class="study-count-card"><span>C</span><strong id="studyEffortCountC">0 / 3</strong></div>
+                <div class="study-count-card"><span>Em</span><strong id="studyEffortCountEm">0 / 3</strong></div>
+                <div class="study-count-card"><span>D</span><strong id="studyEffortCountD">0 / 3</strong></div>
+                <div class="study-count-card"><span>G</span><strong id="studyEffortCountG">0 / 3</strong></div>
+              </div>
+
+              <div id="studyEffortSequenceHint" class="study-sequence-hint">
+                The chord order will be shuffled for each of the 3 rounds.
+              </div>
+            </section>
+
+            <section class="study-experiment-card study-live-card">
+              <h3 class="study-experiment-title">Live cue</h3>
+              <div id="studyEffortLiveCue" class="study-live-cue">
+                <div class="study-live-label">Current chord</div>
+                <div id="studyEffortChord" class="study-live-chord">—</div>
+                <div id="studyEffortPhase" class="study-live-phase">Waiting</div>
+                <p class="study-effort-guidance">Vary the fretting force slowly from light to hard, and then from light to hard, iteratively</p>
+                <div class="study-effort-visual">
+                  <div class="study-live-chart-layout">
+                    <div class="study-live-progress-column" aria-label="Effort countdown">
+                      <strong id="studyEffortLiveTimer" class="study-live-progress-time">20.0 s</strong>
+                      <div class="study-progress-bar study-progress-bar-vertical" aria-label="Effort countdown progress">
+                        <div id="studyEffortLiveProgressBar" class="study-progress-bar-fill study-progress-bar-fill-vertical"></div>
+                      </div>
+                    </div>
+                    <div id="studyEffortChart" class="study-live-chart">
+                      <div class="study-live-chart-empty">Chord chart will appear here.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="study-floating-actions">
+                  <button id="studyEffortFullscreenFloating" class="btn btn-secondary study-floating-action" hidden>Full screen</button>
+                  <button id="studyEffortStopFloating" class="btn btn-secondary study-floating-action" hidden>Stop effort session</button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="studyStep7" class="study-step" data-study-step="6" hidden>
+          <div class="study-step-header">
+            <h2>Strumming speed experiment</h2>
+            <p>
+              Run the speed blocks at 60, 90, 120, and 150 BPM. For each speed, cue the first 20 strums with beeps, then ask the participant to continue with 20 additional strums without sound cues before clicking Next.
+            </p>
+          </div>
+
+          <div class="study-experiment-layout">
+            <section class="study-experiment-card">
+              <h3 class="study-experiment-title">Protocol</h3>
+              <div class="study-protocol-grid">
+                <div class="study-protocol-item">
+                  <strong>60 BPM</strong>
+                  <span>20 cued + 20 silent</span>
+                  <p>Start with 20 beep-guided strums, then 20 more without sound cues.</p>
+                </div>
+                <div class="study-protocol-item">
+                  <strong>90 BPM</strong>
+                  <span>20 cued + 20 silent</span>
+                  <p>Repeat the same pattern at 90 BPM.</p>
+                </div>
+                <div class="study-protocol-item">
+                  <strong>120 BPM</strong>
+                  <span>20 cued + 20 silent</span>
+                  <p>Repeat the same pattern at 120 BPM.</p>
+                </div>
+                <div class="study-protocol-item">
+                  <strong>150 BPM</strong>
+                  <span>20 cued + 20 silent</span>
+                  <p>Finish with the fastest block at 150 BPM.</p>
+                </div>
+                <div class="study-protocol-item">
+                  <strong>REST</strong>
+                  <span>10 s</span>
+                  <p>Insert 10 seconds of rest between consecutive speed blocks.</p>
+                </div>
+              </div>
+
+              <div class="study-experiment-controls">
+                <button id="studyStrummingStart" class="btn btn-primary">Start strumming session</button>
+                <button id="studyStrummingStop" class="btn btn-secondary">Stop</button>
+              </div>
+
+              <div class="study-strumming-chord-picker-card">
+                <div class="study-phase-settings-header">
+                  <strong>Fretting chord</strong>
+                  <span>Choose one</span>
+                </div>
+                <div class="study-strumming-chord-picker" role="group" aria-label="Select strumming chord">
+                  <button id="studyStrummingChordC" type="button" class="study-strumming-chord-option" data-chord="C" aria-pressed="false">
+                    <span class="study-strumming-chord-option-label">C</span>
+                    <span id="studyStrummingChordPreviewC" class="study-strumming-chord-option-preview" aria-hidden="true"></span>
+                  </button>
+                  <button id="studyStrummingChordEm" type="button" class="study-strumming-chord-option" data-chord="Em" aria-pressed="false">
+                    <span class="study-strumming-chord-option-label">Em</span>
+                    <span id="studyStrummingChordPreviewEm" class="study-strumming-chord-option-preview" aria-hidden="true"></span>
+                  </button>
+                </div>
+                <p id="studyStrummingChordHint" class="study-checkbox-hint">Select the chord the participant should fret during all strumming speed blocks.</p>
+              </div>
+
+              <div class="study-experiment-stats">
+                <div class="study-stat-pill">
+                  <span>Status</span>
+                  <strong id="studyStrummingStatus">Ready</strong>
+                </div>
+                <div class="study-stat-pill">
+                  <span>Speed</span>
+                  <strong id="studyStrummingSpeed">— BPM</strong>
+                </div>
+                <div class="study-stat-pill">
+                  <span>Stage</span>
+                  <strong id="studyStrummingBeat">Ready</strong>
+                </div>
+                <div class="study-stat-pill">
+                  <span>Timer</span>
+                  <strong id="studyStrummingTimer">0.0 s</strong>
+                </div>
+              </div>
+
+              <div class="study-progress-bar">
+                <div id="studyStrummingProgressBar" class="study-progress-bar-fill"></div>
+              </div>
+
+              <div class="study-count-grid study-count-grid-4">
+                <div class="study-count-card"><span>60 BPM</span><strong id="studyStrummingCount60">0 / 40</strong></div>
+                <div class="study-count-card"><span>90 BPM</span><strong id="studyStrummingCount90">0 / 40</strong></div>
+                <div class="study-count-card"><span>120 BPM</span><strong id="studyStrummingCount120">0 / 40</strong></div>
+                <div class="study-count-card"><span>150 BPM</span><strong id="studyStrummingCount150">0 / 40</strong></div>
+              </div>
+
+              <div id="studyStrummingSequenceHint" class="study-sequence-hint">
+                Tempo blocks will run in order: 60 BPM, 90 BPM, 120 BPM, and 150 BPM, with 10 seconds of rest between speeds.
+              </div>
+            </section>
+
+            <section class="study-experiment-card study-live-card">
+              <h3 class="study-experiment-title">Live cue</h3>
+              <div id="studyStrummingLiveCue" class="study-live-cue study-strumming-cue">
+                <div class="study-live-label">Current tempo</div>
+                <div id="studyStrummingBpm" class="study-strumming-bpm">— BPM</div>
+                <div id="studyStrummingBeatCount" class="study-live-phase">Ready</div>
+
+                <div class="study-strumming-hero">
+                  <div class="study-strumming-chord-display">
+                    <div class="study-live-status-card study-strumming-selected-card">
+                      <span class="study-live-status-label">Fretting chord</span>
+                      <strong id="studyStrummingChordLabel" class="study-next-chord-value">—</strong>
+                    </div>
+                    <div id="studyStrummingChordChart" class="study-live-chart">
+                      <div class="study-live-chart-empty">Select C or Em to display the fretting chord.</div>
+                    </div>
+                  </div>
+
+                  <div class="study-strumming-pulse-shell" aria-hidden="true">
+                    <div id="studyStrummingPulse" class="study-strumming-pulse">
+                      <span>STRUM</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="study-strumming-live-grid">
+                  <div class="study-live-status-card">
+                    <span id="studyStrummingLiveTimerLabel" class="study-live-status-label">Time to next beep</span>
+                    <strong id="studyStrummingLiveTimer" class="study-live-progress-time">0.0 s</strong>
+                  </div>
+
+                  <div class="study-next-chord study-next-chord-panel" aria-live="polite">
+                    <span class="study-next-chord-label">Next speed</span>
+                    <strong id="studyStrummingNextSpeed" class="study-next-chord-value">60 BPM</strong>
+                  </div>
+                </div>
+
+                <div class="study-progress-bar study-strumming-live-progress">
+                <div id="studyStrummingLiveProgressBar" class="study-progress-bar-fill"></div>
+              </div>
+
+                <p id="studyStrummingInstruction" class="study-live-instruction study-live-instruction-card">
+                  Press start to begin the guided strumming session.
+                </p>
+
+                <button id="studyStrummingNext" class="btn btn-primary study-strumming-next" hidden>Next</button>
+
+                <div class="study-floating-actions">
+                  <button id="studyStrummingFullscreenFloating" class="btn btn-secondary study-floating-action" hidden>Full screen</button>
+                  <button id="studyStrummingStopFloating" class="btn btn-secondary study-floating-action" hidden>Stop strumming session</button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="studyStep8" class="study-step" data-study-step="5" hidden>
+          <div class="study-step-header">
+            <h2>Post-study questionnaire</h2>
+            <p>Ask the participant to drag each slider to rate the statement from 0 to 100. Complete all items before continuing to the strumming session.</p>
+          </div>
+
+          <div class="study-questionnaire-legend">
+            <span>Scale:</span>
+            <strong>0 = strongly disagree</strong>
+            <strong>100 = strongly agree</strong>
+          </div>
+
+          <div class="study-questionnaire-list">
+            <label class="study-questionnaire-item" for="studyQuestionQ1">
+              <div class="study-questionnaire-meta">
+                <span class="study-questionnaire-id">Q1</span>
+                <div>
+                  <strong>The wearable sensors were comfortable to wear.</strong>
+                </div>
+              </div>
+              <div class="study-questionnaire-control">
+                <div class="study-questionnaire-slider-row">
+                  <input id="studyQuestionQ1" class="study-questionnaire-slider" type="range" min="0" max="100" step="1" value="50" data-study-question="Q1" data-study-question-group="postStudy" data-study-question-answered="false" aria-describedby="studyQuestionQ1Value studyQuestionQ1Scale" />
+                  <output id="studyQuestionQ1Value" class="study-questionnaire-value" data-study-question-value="Q1" for="studyQuestionQ1">--</output>
+                </div>
+                <div id="studyQuestionQ1Scale" class="study-questionnaire-scale" aria-hidden="true">
+                  <span>0</span>
+                  <span>100</span>
+                </div>
+              </div>
+            </label>
+
+            <label class="study-questionnaire-item" for="studyQuestionQ2">
+              <div class="study-questionnaire-meta">
+                <span class="study-questionnaire-id">Q2</span>
+                <div>
+                  <strong>I could clearly distinguish between light, normal, and hard pressing.</strong>
+                </div>
+              </div>
+              <div class="study-questionnaire-control">
+                <div class="study-questionnaire-slider-row">
+                  <input id="studyQuestionQ2" class="study-questionnaire-slider" type="range" min="0" max="100" step="1" value="50" data-study-question="Q2" data-study-question-group="postStudy" data-study-question-answered="false" aria-describedby="studyQuestionQ2Value studyQuestionQ2Scale" />
+                  <output id="studyQuestionQ2Value" class="study-questionnaire-value" data-study-question-value="Q2" for="studyQuestionQ2">--</output>
+                </div>
+                <div id="studyQuestionQ2Scale" class="study-questionnaire-scale" aria-hidden="true">
+                  <span>0</span>
+                  <span>100</span>
+                </div>
+              </div>
+            </label>
+
+            <label class="study-questionnaire-item" for="studyQuestionQ3">
+              <div class="study-questionnaire-meta">
+                <span class="study-questionnaire-id">Q3</span>
+                <div>
+                  <strong>I could perform the instructed pressure levels.</strong>
+                </div>
+              </div>
+              <div class="study-questionnaire-control">
+                <div class="study-questionnaire-slider-row">
+                  <input id="studyQuestionQ3" class="study-questionnaire-slider" type="range" min="0" max="100" step="1" value="50" data-study-question="Q3" data-study-question-group="postStudy" data-study-question-answered="false" aria-describedby="studyQuestionQ3Value studyQuestionQ3Scale" />
+                  <output id="studyQuestionQ3Value" class="study-questionnaire-value" data-study-question-value="Q3" for="studyQuestionQ3">--</output>
+                </div>
+                <div id="studyQuestionQ3Scale" class="study-questionnaire-scale" aria-hidden="true">
+                  <span>0</span>
+                  <span>100</span>
+                </div>
+              </div>
+            </label>
+
+            <label class="study-questionnaire-item" for="studyQuestionQ4">
+              <div class="study-questionnaire-meta">
+                <span class="study-questionnaire-id">Q4</span>
+                <div>
+                  <strong>The chord formation and transition tasks were similar to normal practice exercises.</strong>
+                </div>
+              </div>
+              <div class="study-questionnaire-control">
+                <div class="study-questionnaire-slider-row">
+                  <input id="studyQuestionQ4" class="study-questionnaire-slider" type="range" min="0" max="100" step="1" value="50" data-study-question="Q4" data-study-question-group="postStudy" data-study-question-answered="false" aria-describedby="studyQuestionQ4Value studyQuestionQ4Scale" />
+                  <output id="studyQuestionQ4Value" class="study-questionnaire-value" data-study-question-value="Q4" for="studyQuestionQ4">--</output>
+                </div>
+                <div id="studyQuestionQ4Scale" class="study-questionnaire-scale" aria-hidden="true">
+                  <span>0</span>
+                  <span>100</span>
+                </div>
+              </div>
+            </label>
+
+            <label class="study-questionnaire-item" for="studyQuestionQ5">
+              <div class="study-questionnaire-meta">
+                <span class="study-questionnaire-id">Q5</span>
+                <div>
+                  <strong>I was able to keep the chord still during the hold periods.</strong>
+                </div>
+              </div>
+              <div class="study-questionnaire-control">
+                <div class="study-questionnaire-slider-row">
+                  <input id="studyQuestionQ5" class="study-questionnaire-slider" type="range" min="0" max="100" step="1" value="50" data-study-question="Q5" data-study-question-group="postStudy" data-study-question-answered="false" aria-describedby="studyQuestionQ5Value studyQuestionQ5Scale" />
+                  <output id="studyQuestionQ5Value" class="study-questionnaire-value" data-study-question-value="Q5" for="studyQuestionQ5">--</output>
+                </div>
+                <div id="studyQuestionQ5Scale" class="study-questionnaire-scale" aria-hidden="true">
+                  <span>0</span>
+                  <span>100</span>
+                </div>
+              </div>
+            </label>
+
+            <label class="study-questionnaire-item" for="studyQuestionQ6">
+              <div class="study-questionnaire-meta">
+                <span class="study-questionnaire-id">Q6</span>
+                <div>
+                  <strong>I would be willing to use a wearable system like this during practice.</strong>
+                </div>
+              </div>
+              <div class="study-questionnaire-control">
+                <div class="study-questionnaire-slider-row">
+                  <input id="studyQuestionQ6" class="study-questionnaire-slider" type="range" min="0" max="100" step="1" value="50" data-study-question="Q6" data-study-question-group="postStudy" data-study-question-answered="false" aria-describedby="studyQuestionQ6Value studyQuestionQ6Scale" />
+                  <output id="studyQuestionQ6Value" class="study-questionnaire-value" data-study-question-value="Q6" for="studyQuestionQ6">--</output>
+                </div>
+                <div id="studyQuestionQ6Scale" class="study-questionnaire-scale" aria-hidden="true">
+                  <span>0</span>
+                  <span>100</span>
+                </div>
+              </div>
+            </label>
+
+            <label class="study-questionnaire-item" for="studyQuestionQ7">
+              <div class="study-questionnaire-meta">
+                <span class="study-questionnaire-id">Q7</span>
+                <div>
+                  <strong>The sensing setup seemed practical for repeated use.</strong>
+                </div>
+              </div>
+              <div class="study-questionnaire-control">
+                <div class="study-questionnaire-slider-row">
+                  <input id="studyQuestionQ7" class="study-questionnaire-slider" type="range" min="0" max="100" step="1" value="50" data-study-question="Q7" data-study-question-group="postStudy" data-study-question-answered="false" aria-describedby="studyQuestionQ7Value studyQuestionQ7Scale" />
+                  <output id="studyQuestionQ7Value" class="study-questionnaire-value" data-study-question-value="Q7" for="studyQuestionQ7">--</output>
+                </div>
+                <div id="studyQuestionQ7Scale" class="study-questionnaire-scale" aria-hidden="true">
+                  <span>0</span>
+                  <span>100</span>
+                </div>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        <section id="studyStep9" class="study-step" data-study-step="7" hidden>
+          <div class="study-step-header">
+            <h2>Post-strumming questionnaire</h2>
+            <p>Ask the participant to drag each slider to rate the strumming session from 0 to 100. Complete all items before finishing the study guide.</p>
+          </div>
+
+          <div class="study-questionnaire-legend">
+            <span>Scale:</span>
+            <strong>0 = strongly disagree</strong>
+            <strong>100 = strongly agree</strong>
+          </div>
+
+          <div class="study-questionnaire-list">
+            <label class="study-questionnaire-item" for="studyStrummingQuestionQ8">
+              <div class="study-questionnaire-meta">
+                <span class="study-questionnaire-id">Q8</span>
+                <div>
+                  <strong>The wearable sensors were comfortable during strumming.</strong>
+                </div>
+              </div>
+              <div class="study-questionnaire-control">
+                <div class="study-questionnaire-slider-row">
+                  <input id="studyStrummingQuestionQ8" class="study-questionnaire-slider" type="range" min="0" max="100" step="1" value="50" data-study-question="Q8" data-study-question-group="postStrumming" data-study-question-answered="false" aria-describedby="studyStrummingQuestionQ8Value studyStrummingQuestionQ8Scale" />
+                  <output id="studyStrummingQuestionQ8Value" class="study-questionnaire-value" data-study-question-value="Q8" for="studyStrummingQuestionQ8">--</output>
+                </div>
+                <div id="studyStrummingQuestionQ8Scale" class="study-questionnaire-scale" aria-hidden="true">
+                  <span>0</span>
+                  <span>100</span>
+                </div>
+              </div>
+            </label>
+
+            <label class="study-questionnaire-item" for="studyStrummingQuestionQ9">
+              <div class="study-questionnaire-meta">
+                <span class="study-questionnaire-id">Q9</span>
+                <div>
+                  <strong>The strumming-intensity instructions were easy to follow.</strong>
+                </div>
+              </div>
+              <div class="study-questionnaire-control">
+                <div class="study-questionnaire-slider-row">
+                  <input id="studyStrummingQuestionQ9" class="study-questionnaire-slider" type="range" min="0" max="100" step="1" value="50" data-study-question="Q9" data-study-question-group="postStrumming" data-study-question-answered="false" aria-describedby="studyStrummingQuestionQ9Value studyStrummingQuestionQ9Scale" />
+                  <output id="studyStrummingQuestionQ9Value" class="study-questionnaire-value" data-study-question-value="Q9" for="studyStrummingQuestionQ9">--</output>
+                </div>
+                <div id="studyStrummingQuestionQ9Scale" class="study-questionnaire-scale" aria-hidden="true">
+                  <span>0</span>
+                  <span>100</span>
+                </div>
+              </div>
+            </label>
+
+            <label class="study-questionnaire-item" for="studyStrummingQuestionQ10">
+              <div class="study-questionnaire-meta">
+                <span class="study-questionnaire-id">Q10</span>
+                <div>
+                  <strong>The strumming tasks were similar to normal practice exercises.</strong>
+                </div>
+              </div>
+              <div class="study-questionnaire-control">
+                <div class="study-questionnaire-slider-row">
+                  <input id="studyStrummingQuestionQ10" class="study-questionnaire-slider" type="range" min="0" max="100" step="1" value="50" data-study-question="Q10" data-study-question-group="postStrumming" data-study-question-answered="false" aria-describedby="studyStrummingQuestionQ10Value studyStrummingQuestionQ10Scale" />
+                  <output id="studyStrummingQuestionQ10Value" class="study-questionnaire-value" data-study-question-value="Q10" for="studyStrummingQuestionQ10">--</output>
+                </div>
+                <div id="studyStrummingQuestionQ10Scale" class="study-questionnaire-scale" aria-hidden="true">
+                  <span>0</span>
+                  <span>100</span>
+                </div>
+              </div>
+            </label>
+
+            <label class="study-questionnaire-item" for="studyStrummingQuestionQ11">
+              <div class="study-questionnaire-meta">
+                <span class="study-questionnaire-id">Q11</span>
+                <div>
+                  <strong>I was able to keep the tempo steady during the tasks.</strong>
+                </div>
+              </div>
+              <div class="study-questionnaire-control">
+                <div class="study-questionnaire-slider-row">
+                  <input id="studyStrummingQuestionQ11" class="study-questionnaire-slider" type="range" min="0" max="100" step="1" value="50" data-study-question="Q11" data-study-question-group="postStrumming" data-study-question-answered="false" aria-describedby="studyStrummingQuestionQ11Value studyStrummingQuestionQ11Scale" />
+                  <output id="studyStrummingQuestionQ11Value" class="study-questionnaire-value" data-study-question-value="Q11" for="studyStrummingQuestionQ11">--</output>
+                </div>
+                <div id="studyStrummingQuestionQ11Scale" class="study-questionnaire-scale" aria-hidden="true">
+                  <span>0</span>
+                  <span>100</span>
+                </div>
+              </div>
+            </label>
+
+            <label class="study-questionnaire-item" for="studyStrummingQuestionQ12">
+              <div class="study-questionnaire-meta">
+                <span class="study-questionnaire-id">Q12</span>
+                <div>
+                  <strong>I would be willing to use a system like this during guitar practice.</strong>
+                </div>
+              </div>
+              <div class="study-questionnaire-control">
+                <div class="study-questionnaire-slider-row">
+                  <input id="studyStrummingQuestionQ12" class="study-questionnaire-slider" type="range" min="0" max="100" step="1" value="50" data-study-question="Q12" data-study-question-group="postStrumming" data-study-question-answered="false" aria-describedby="studyStrummingQuestionQ12Value studyStrummingQuestionQ12Scale" />
+                  <output id="studyStrummingQuestionQ12Value" class="study-questionnaire-value" data-study-question-value="Q12" for="studyStrummingQuestionQ12">--</output>
+                </div>
+                <div id="studyStrummingQuestionQ12Scale" class="study-questionnaire-scale" aria-hidden="true">
+                  <span>0</span>
+                  <span>100</span>
+                </div>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        <div class="study-footer-bar">
+          <div id="studyMessage" class="study-message" role="status" aria-live="polite"></div>
+
+          <div class="study-nav">
+            <div class="study-nav-meta">
+              <span class="study-nav-kicker">Current step</span>
+              <strong id="studyFooterProgress">Participant information</strong>
+            </div>
+            <div class="study-nav-actions">
+              <button id="studyPrev" class="btn btn-secondary">Previous</button>
+              <button id="studyNext" class="btn btn-primary">Next step</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <main class="dashboard">
+    <section class="top-panels">
+      <section class="card controls">
+        <h2>Connection & Control</h2>
+        <div class="connect-hero">
+          <div class="connect-hero-title">Step 1 · Connect Sensors</div>
+          <div class="connect-hero-actions">
+            <div class="connect-item">
+              <button id="btnConnect1" class="btn btn-connect">Connect Sensor 1</button>
+              <span id="status1" class="status status-chip">Not connected</span>
+            </div>
+            <div class="connect-item">
+              <button id="btnConnect2" class="btn btn-connect">Connect Sensor 2</button>
+              <span id="status2" class="status status-chip">Not connected</span>
+            </div>
+            <div class="connect-item">
+              <button id="btnConnect3" class="btn btn-connect">Connect Sensor 3 (Pressure)</button>
+              <span id="status3" class="status status-chip">Not connected</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-caption">Step 2 · Configure Measurement</div>
+        <div class="control-grid">
+          <div class="row wrap">
+            <label for="frequency">Frequency (Hz)</label>
+            <input id="frequency" type="number" value="50000" min="1" step="1" />
+          </div>
+          <div class="row wrap">
+            <label for="resistance">Resistance</label>
+            <select id="resistance">
+              <option value="0">200 Ω</option>
+              <option value="1" selected>1 KΩ</option>
+              <option value="2">5 KΩ</option>
+              <option value="3">10 KΩ</option>
+              <option value="4">20 KΩ</option>
+              <option value="5">40 KΩ</option>
+              <option value="6">80 KΩ</option>
+              <option value="7">160 KΩ</option>
+            </select>
+          </div>
+          <div class="row wrap">
+            <label for="sweep">Sweep</label>
+            <input id="sweep" type="checkbox" />
+          </div>
+          <div class="row wrap">
+            <button id="btnStartStop" class="btn btn-primary btn-wide start">Start</button>
+          </div>
+        </div>
+
+        <div class="section-caption">Step 3 · Choose EIS Visualization</div>
+        <div class="control-grid control-grid-single">
+          <div class="row wrap">
+            <label for="eisChannelMode">EIS Channels</label>
+            <select id="eisChannelMode">
+              <option value="together" selected>Together (4 in one chart)</option>
+              <option value="separate">Separate (4 individual charts)</option>
+              <option value="compare">Compare S1 vs S2 (channel by channel)</option>
+            </select>
+          </div>
+        </div>
+
+        <h3>Rate / Total</h3>
+        <div class="rate-grid">
+          <div class="metric-card">
+            <span class="metric-title">S1 EIS</span>
+            <span id="rateEis1" class="metric-value">0 Hz</span>
+            <span id="totalEis1" class="metric-sub">0 pkts</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-title">S1 IMU</span>
+            <span id="rateImu1" class="metric-value">0 Hz</span>
+            <span id="totalImu1" class="metric-sub">0 pkts</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-title">S2 EIS</span>
+            <span id="rateEis2" class="metric-value">0 Hz</span>
+            <span id="totalEis2" class="metric-sub">0 pkts</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-title">S2 IMU</span>
+            <span id="rateImu2" class="metric-value">0 Hz</span>
+            <span id="totalImu2" class="metric-sub">0 pkts</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-title">S3 Pressure</span>
+            <span id="ratePressure3" class="metric-value">0 Hz</span>
+            <span id="totalPressure3" class="metric-sub">0 pkts</span>
+          </div>
+        </div>
+
+        <h3>Latest Raw Packet</h3>
+        <pre id="rawPacket">-</pre>
+        <p id="log" class="log">Ready.</p>
+      </section>
+
+      <section class="card recorder">
+        <h2>Label & Recording</h2>
+        <div class="section-caption">Step 4 · Mark data with labels</div>
+        <div id="labelRow" class="label-row"></div>
+        <div class="row wrap">
+          <button id="btnSave" class="btn btn-secondary">⏺ Save Data</button>
+          <button id="btnDiscard" class="btn btn-danger">Discard</button>
+        </div>
+        <div class="row wrap recording-row">
+          <span id="recStatus" class="rec-status">Ready to record</span>
+          <span id="recTimer" class="rec-timer"></span>
+        </div>
+        <div id="saveStatus" class="save-status"></div>
+      </section>
+    </section>
+
+    <section class="charts-grid">
+      <section id="cardEis1" class="card chart-card">
+      <h2>Sensor 1 EIS</h2>
+      <div class="kv-grid" id="eis1Values"></div>
+      <div id="eisCombined1" class="eis-combined">
+        <canvas id="chartEisMag1" height="140"></canvas>
+        <canvas id="chartEisPhase1" height="140"></canvas>
+      </div>
+      <div id="eisSeparate1" class="eis-separate">
+        <div class="mini-chart-grid">
+          <canvas id="chartEisMag1Ch1" height="120"></canvas>
+          <canvas id="chartEisMag1Ch2" height="120"></canvas>
+          <canvas id="chartEisMag1Ch3" height="120"></canvas>
+          <canvas id="chartEisMag1Ch4" height="120"></canvas>
+        </div>
+        <div class="mini-chart-grid">
+          <canvas id="chartEisPhase1Ch1" height="120"></canvas>
+          <canvas id="chartEisPhase1Ch2" height="120"></canvas>
+          <canvas id="chartEisPhase1Ch3" height="120"></canvas>
+          <canvas id="chartEisPhase1Ch4" height="120"></canvas>
+        </div>
+      </div>
+      </section>
+
+      <section class="card chart-card">
+      <h2>Sensor 1 IMU</h2>
+      <div class="kv-grid" id="imu1Values"></div>
+      <canvas id="chartImuAcc1" height="140"></canvas>
+      <canvas id="chartImuGyro1" height="140"></canvas>
+      </section>
+
+      <section id="cardEis2" class="card chart-card">
+      <h2>Sensor 2 EIS</h2>
+      <div class="kv-grid" id="eis2Values"></div>
+      <div id="eisCombined2" class="eis-combined">
+        <canvas id="chartEisMag2" height="140"></canvas>
+        <canvas id="chartEisPhase2" height="140"></canvas>
+      </div>
+      <div id="eisSeparate2" class="eis-separate">
+        <div class="mini-chart-grid">
+          <canvas id="chartEisMag2Ch1" height="120"></canvas>
+          <canvas id="chartEisMag2Ch2" height="120"></canvas>
+          <canvas id="chartEisMag2Ch3" height="120"></canvas>
+          <canvas id="chartEisMag2Ch4" height="120"></canvas>
+        </div>
+        <div class="mini-chart-grid">
+          <canvas id="chartEisPhase2Ch1" height="120"></canvas>
+          <canvas id="chartEisPhase2Ch2" height="120"></canvas>
+          <canvas id="chartEisPhase2Ch3" height="120"></canvas>
+          <canvas id="chartEisPhase2Ch4" height="120"></canvas>
+        </div>
+      </div>
+      </section>
+
+      <section id="cardEisCompare" class="card chart-card compare-card">
+      <h2>EIS Compare · Sensor 1 vs Sensor 2 (Channel-by-Channel)</h2>
+      <h3>Magnitude</h3>
+      <div class="mini-chart-grid compare-grid">
+        <canvas id="chartCmpMagCh1" height="120"></canvas>
+        <canvas id="chartCmpMagCh2" height="120"></canvas>
+        <canvas id="chartCmpMagCh3" height="120"></canvas>
+        <canvas id="chartCmpMagCh4" height="120"></canvas>
+      </div>
+      <h3>Phase</h3>
+      <div class="mini-chart-grid compare-grid">
+        <canvas id="chartCmpPhaseCh1" height="120"></canvas>
+        <canvas id="chartCmpPhaseCh2" height="120"></canvas>
+        <canvas id="chartCmpPhaseCh3" height="120"></canvas>
+        <canvas id="chartCmpPhaseCh4" height="120"></canvas>
+      </div>
+      </section>
+
+      <section class="card chart-card">
+      <h2>Sensor 3 Pressure</h2>
+      <div class="kv-grid" id="pressure3Values"></div>
+      <canvas id="chartPressure3" height="140"></canvas>
+      </section>
+
+      <section class="card chart-card">
+      <h2>Sensor 2 IMU</h2>
+      <div class="kv-grid" id="imu2Values"></div>
+      <canvas id="chartImuAcc2" height="140"></canvas>
+      <canvas id="chartImuGyro2" height="140"></canvas>
+      </section>
+    </section>
+  </main>
+</body>
+</html>

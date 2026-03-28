@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gesture Label Editor</title>
+  <link rel="stylesheet" href="./label-editor.css" />
+  <script defer src="./label-editor.js"></script>
+</head>
+<body>
+  <header class="page-header">
+    <div>
+      <div class="eyebrow">Chrome web app</div>
+      <h1>Gesture Label Editor</h1>
+      <p>Load one aligned CSV from <code>SynData</code>, inspect the existing <code>activity_label</code> boundaries, and drag the label-change lines to correct timing.</p>
+    </div>
+    <div class="header-actions">
+      <a class="btn btn-secondary" href="./index.html">Back to dashboard</a>
+    </div>
+  </header>
+
+  <main class="page-grid">
+    <section class="card controls-card">
+      <h2>Files</h2>
+      <div class="file-grid">
+        <label class="file-picker">
+          <span>Aligned CSV</span>
+          <input id="alignedFileInput" type="file" accept=".csv,text/csv" />
+          <small id="alignedFileMeta">No file selected.</small>
+        </label>
+      </div>
+
+      <div class="summary-grid">
+        <div class="summary-box">
+          <span class="summary-label">Label Source</span>
+          <strong id="sessionLabel">—</strong>
+        </div>
+        <div class="summary-box">
+          <span class="summary-label">Segments</span>
+          <strong id="segmentCount">0</strong>
+        </div>
+        <div class="summary-box">
+          <span class="summary-label">Boundaries</span>
+          <strong id="boundaryCount">0</strong>
+        </div>
+        <div class="summary-box">
+          <span class="summary-label">Duration</span>
+          <strong id="sessionDuration">0.0 s</strong>
+        </div>
+      </div>
+
+      <section class="guide-card" aria-label="Quick guide">
+        <div class="guide-card-header">
+          <h3>Quick guide</h3>
+          <span>Boundary correction</span>
+        </div>
+        <ol class="guide-list">
+          <li>Load the aligned CSV with existing <code>activity_label</code> values.</li>
+          <li>Select one label boundary from the editor list.</li>
+          <li>Drag the vertical line in the plot to shift the boundary earlier or later.</li>
+          <li>Use nudges for fine correction.</li>
+          <li>Export the corrected aligned CSV.</li>
+        </ol>
+        <div class="shortcut-list">
+          <span><kbd>↑</kbd>/<kbd>↓</kbd> previous or next boundary</span>
+          <span><kbd>Alt</kbd>+<kbd>←</kbd>/<kbd>→</kbd> nudge 0.01 s</span>
+          <span><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>←</kbd>/<kbd>→</kbd> nudge 0.10 s</span>
+          <span><kbd>R</kbd> reset all boundaries</span>
+        </div>
+      </section>
+
+      <section class="option-card" aria-label="Editor options">
+        <div class="guide-card-header">
+          <h3>Editor options</h3>
+          <span>Review and snapping</span>
+        </div>
+        <div class="option-list">
+          <label class="option-field">
+            <span>Detail window (seconds)</span>
+            <input id="windowSecondsInput" type="number" min="4" step="1" value="20" />
+          </label>
+          <label class="option-field">
+            <span>Snap interval (ms)</span>
+            <input id="snapMsInput" type="number" min="0" step="10" value="0" />
+          </label>
+          <label class="option-field">
+            <span>Pressure shift (ms)</span>
+            <input id="pressureShiftMsInput" type="number" step="1" value="0" />
+          </label>
+        </div>
+      </section>
+
+      <div class="notice" id="statusBox">Load one aligned CSV to start editing boundaries.</div>
+
+      <div class="toolbar">
+        <button id="resetBoundariesBtn" class="btn btn-secondary" disabled>Reset boundaries</button>
+        <button id="saveAlignedBtn" class="btn btn-primary" disabled>Save relabeled aligned CSV</button>
+      </div>
+    </section>
+
+    <section class="card chart-card">
+      <div class="chart-header">
+        <div>
+          <h2>Linked plots</h2>
+          <p>All traces share the same timeline. Click the overview to recenter the detail view, then drag the vertical boundary line to shift where one label changes into the next.</p>
+        </div>
+        <div class="chart-header-side">
+          <div class="chart-legend-note">Selected boundary: <strong id="selectedBoundaryLabel">none</strong></div>
+          <div class="viewport-pill">Visible range: <strong id="viewportLabel">—</strong></div>
+          <div class="chart-controls">
+            <button id="zoomOutBtn" class="btn btn-secondary" disabled>Zoom out</button>
+            <button id="zoomInBtn" class="btn btn-secondary" disabled>Zoom in</button>
+            <button id="zoomResetBtn" class="btn btn-secondary" disabled>Reset</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart-shell">
+        <section class="plot-panel">
+          <div class="plot-panel-header">
+            <h3>Session overview</h3>
+            <span>Click anywhere here to recenter the detail pane</span>
+          </div>
+          <div class="plot-canvas-wrap plot-canvas-wrap-wide">
+            <canvas id="overviewCanvas" width="1280" height="220"></canvas>
+          </div>
+        </section>
+        <section class="plot-panel">
+          <div class="plot-panel-header">
+            <h3>Pressure preview</h3>
+            <span id="pressureFrameMeta">Nearest pressure frame will appear here</span>
+          </div>
+          <div class="pressure-preview-wrap">
+            <canvas id="pressureCanvas" width="180" height="120"></canvas>
+          </div>
+        </section>
+        <section class="plot-panel">
+          <div class="plot-panel-header">
+            <h3>Detail editor</h3>
+            <span>Drag a visible boundary line to adjust the label change time</span>
+          </div>
+          <div class="plot-canvas-wrap plot-canvas-wrap-tall">
+            <canvas id="detailCanvas" width="1280" height="760"></canvas>
+          </div>
+        </section>
+        
+        <div class="time-scroll-wrap">
+          <label for="timeScrollRange">Time scroll</label>
+          <input id="timeScrollRange" type="range" min="0" max="0" value="0" step="1" disabled />
+          <span class="time-scroll-hint">Use the bar or hold <kbd>Shift</kbd> and scroll to pan.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card boundaries-card">
+      <div class="boundaries-header">
+        <h2>Boundary editor</h2>
+        <p>Select a boundary, inspect the signals around it, and shift the line until the label transition matches the real gesture timing.</p>
+      </div>
+      <div class="boundary-toolbar">
+        <div class="boundary-nav-group">
+          <button id="prevBoundaryBtn" class="btn btn-secondary" disabled>Previous</button>
+          <button id="nextBoundaryBtn" class="btn btn-secondary" disabled>Next</button>
+        </div>
+        <div class="boundary-nav-group">
+          <button id="nudgeLeftLargeBtn" class="btn btn-secondary" disabled>-0.10 s</button>
+          <button id="nudgeLeftBtn" class="btn btn-secondary" disabled>-0.01 s</button>
+          <button id="nudgeRightBtn" class="btn btn-secondary" disabled>+0.01 s</button>
+          <button id="nudgeRightLargeBtn" class="btn btn-secondary" disabled>+0.10 s</button>
+        </div>
+      </div>
+      <div id="boundaryList" class="boundary-list empty">No boundaries available yet.</div>
+    </section>
+  </main>
+</body>
+</html>
